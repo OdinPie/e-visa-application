@@ -1,6 +1,7 @@
 import 'dart:io';
 import 'dart:math';
-
+import 'package:http/http.dart' as http;
+import 'package:path_provider/path_provider.dart';
 import 'package:evisa_temp/DisplayPassportData.dart';
 import 'package:evisa_temp/FaceLivelinessCheck.dart';
 import 'package:flutter/material.dart';
@@ -29,7 +30,7 @@ class _PassportPageState extends State<PassportPage> {
         image = File(pickedFile.path);
         setState(() {
           loading = true;
-          processImage();
+          processImage(image);
         });
       }
     } catch (e) {
@@ -38,7 +39,7 @@ class _PassportPageState extends State<PassportPage> {
   }
 
   // Process the captured image
-  processImage() async {
+  processImage(File? image) async {
     try {
       String mrzLines = "";
       final inputImage = InputImage.fromFilePath(image!.path);
@@ -89,6 +90,7 @@ class _PassportPageState extends State<PassportPage> {
                                     passportNumber: passportNumber,
                                     birthDate: birthDate,
                                     gender: gender,
+                                    image: image,
                                     expiryDate:expiryDate,
                                     expiryDateString:expiryDateString,
                                     personalNumber:personalNumber),
@@ -125,6 +127,7 @@ class _PassportPageState extends State<PassportPage> {
     final mrz = mrzRegex.firstMatch(extractedText);
     return mrz?.group(0)?.replaceAll(" ", '').toUpperCase();
   }
+
 
   @override
   Widget build(BuildContext context) {

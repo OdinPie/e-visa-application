@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:evisa_temp/FaceLivelinessCheck.dart';
+import 'dart:io';
+import 'package:http/http.dart' as http;
 
 class DisplayPassportData extends StatefulWidget {
   final String countryCode;
@@ -11,6 +13,7 @@ class DisplayPassportData extends StatefulWidget {
   final String expiryDateString;
   final DateTime expiryDate;
   final String personalNumber;
+  final File? image;
 
   const DisplayPassportData({
     Key? key,
@@ -21,6 +24,7 @@ class DisplayPassportData extends StatefulWidget {
     required this.birthDate,
     required this.gender,
     required this.expiryDate,
+    required this.image,
     required this.expiryDateString,
     required this.personalNumber,
   }) : super(key: key);
@@ -28,6 +32,27 @@ class DisplayPassportData extends StatefulWidget {
   @override
   State<DisplayPassportData> createState() {
     return _DisplayPassportDataState();
+  }
+}
+
+Future<bool> _sendToApi(File? file, BuildContext context) async {
+  final uri = Uri.parse("http://127.0.0.1:8000/upload_passport/");
+  final request = http.MultipartRequest("POST", uri)
+    ..files.add(await http.MultipartFile.fromPath('file', file!.path));
+
+  final response = await request.send();
+
+  if (response.statusCode == 200) {
+    // return true;
+    Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (context) => Facelivelinesscheck(),
+        ),
+      );
+      return true;
+  } else {
+    throw Exception("Could Not Save Passport Photo");
   }
 }
 
@@ -63,13 +88,8 @@ class _DisplayPassportDataState extends State<DisplayPassportData> {
       );
       // return false;
     } else {
-      Navigator.push(
-        context,
-        MaterialPageRoute(
-          builder: (context) => Facelivelinesscheck(),
-        ),
-      );
-      // return true;
+      _sendToApi(widget.image,context);
+      
     }
   }
 
@@ -124,7 +144,6 @@ class _DisplayPassportDataState extends State<DisplayPassportData> {
                         onPressed: () {
                           checkExpiry(context);
                           // Navigate to FaceLivelinessCheck page
-                          
                         },
                         style: ElevatedButton.styleFrom(
                           backgroundColor: Colors.black,
