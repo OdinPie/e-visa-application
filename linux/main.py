@@ -180,40 +180,13 @@ async def process_fingerprints(file: UploadFile = File(...)):
     except Exception as e:
         return JSONResponse(content={"status": "error", "message": str(e)})
 
-# MinIO setup
+
+
+    # MinIO setup
 MINIO_URL = "113.11.21.65:8096"
 MINIO_ACCESS_KEY = "minioadmin"
 MINIO_SECRET_KEY = "MINIOadmin"
-BUCKET_NAME = "fingerprints"
-
-class UrlManager:
-    def __init__(self, minio_client, bucket_name):
-        self.minio_client = minio_client
-        self.bucket_name = bucket_name
-        self.url_cache = {}
-        
-    def get_presigned_url(self, object_name: str) -> str:
-        """Generate a presigned URL with caching and automatic refresh"""
-        current_time = datetime.utcnow()
-        
-        # Check if URL exists in cache and is not expired (with 1-hour buffer)
-        if object_name in self.url_cache:
-            cached_url, expiration = self.url_cache[object_name]
-            if expiration - timedelta(hours=1) > current_time:
-                return cached_url
-                
-        # Generate new URL with 7-day expiration
-        try:
-            url = self.minio_client.presigned_get_object(
-                self.bucket_name,
-                object_name,
-                expires=timedelta(days=7)
-            )
-            # Cache the URL with its expiration time
-            self.url_cache[object_name] = (url, current_time + timedelta(days=7))
-            return url
-        except Exception as e:
-            raise HTTPException(status_code=500, detail=f"Error generating presigned URL: {str(e)}")
+BUCKET_NAME = "biometrics"  # Changed bucket name to be more generic
 
 minio_client = Minio(
     MINIO_URL,
@@ -225,13 +198,18 @@ minio_client = Minio(
 if not minio_client.bucket_exists(BUCKET_NAME):
     minio_client.make_bucket(BUCKET_NAME)
 
-# Initialize URL manager
-url_manager = UrlManager(minio_client, BUCKET_NAME)
-
 @app.post("/upload/")
-async def upload_fingerprint(
+async def upload_biometrics(
     id: str = Form(...),
     capture_date: str = Form(...),
+    # Face image fields
+    face_0: Optional[str] = Form(None),
+    face_1: Optional[str] = Form(None),
+    face_2: Optional[str] = Form(None),
+    face_3: Optional[str] = Form(None),
+    face_4: Optional[str] = Form(None),
+    face_5: Optional[str] = Form(None),
+    # Fingerprint fields
     right_thumb: Optional[str] = Form(None),
     right_index: Optional[str] = Form(None),
     right_middle: Optional[str] = Form(None),
@@ -244,7 +222,52 @@ async def upload_fingerprint(
     left_little: Optional[str] = Form(None)
 ):
     try:
-        fingerprint_data = {}
+        biometric_data = {
+            "face": {},
+            "fingerprints": {}
+        }
+
+        # Process face images
+        face_fields = {
+            f'face_{i}': locals()[f'face_{i}'] 
+            for i in range(6)  # Assuming 6 face images
+            if locals()[f'face_{i}'] is not None
+        }
+
+        for face_name, base64_data in face_fields.items():
+            if base64_data:
+                if ',' in base64_data:
+                    base64_data = base64_data.split(',')[1]
+
+                image_data = base64.b64decode(base64_data)
+                img = Image.open(io.BytesIO(image_data))
+                
+                # Save as PNG
+                buffer = io.BytesIO()
+                img.save(buffer, format='PNG', optimize=False, quality=100)
+                buffer.seek(0)
+                img_data = buffer.getvalue()
+                
+                object_name = f"{id}/face/{face_name}.png"
+                
+                minio_client.put_object(
+                    BUCKET_NAME,
+                    object_name,
+                    io.BytesIO(img_data),
+                    length=len(img_data),
+                    content_type='image/png'
+                )
+                
+                # Generate URL with 7-day expiration
+                url = minio_client.presigned_get_object(
+                    BUCKET_NAME,
+                    object_name,
+                    expires=timedelta(days=7)
+                )
+                
+                biometric_data["face"][face_name] = url
+
+        # Process fingerprint images
         fingerprint_fields = {
             'right_thumb': right_thumb,
             'right_index': right_index,
@@ -266,19 +289,22 @@ async def upload_fingerprint(
                 image_data = base64.b64decode(base64_data)
                 img = Image.open(io.BytesIO(image_data))
                
+                # Save as PNG
                 png_buffer = io.BytesIO()
                 img.save(png_buffer, format='PNG', optimize=False, quality=100)
                 png_buffer.seek(0)
                 png_data = png_buffer.getvalue()
                 
+                # Save as WSQ
                 wsq_buffer = io.BytesIO()
                 img.save(wsq_buffer, format='WSQ')
                 wsq_buffer.seek(0)
                 wsq_data = wsq_buffer.getvalue()
                 
-                png_object_name = f"{id}/{finger_name}.png"
-                wsq_object_name = f"{id}/{finger_name}.wsq"
+                png_object_name = f"{id}/fingerprints/{finger_name}.png"
+                wsq_object_name = f"{id}/fingerprints/{finger_name}.wsq"
                 
+                # Upload PNG
                 minio_client.put_object(
                     BUCKET_NAME,
                     png_object_name,
@@ -287,6 +313,7 @@ async def upload_fingerprint(
                     content_type='image/png'
                 )
                 
+                # Upload WSQ
                 minio_client.put_object(
                     BUCKET_NAME,
                     wsq_object_name,
@@ -295,11 +322,20 @@ async def upload_fingerprint(
                     content_type='application/octet-stream'
                 )
                 
-                # Use URL manager to get presigned URLs
-                png_url = url_manager.get_presigned_url(png_object_name)
-                wsq_url = url_manager.get_presigned_url(wsq_object_name)
+                # Generate URLs with 7-day expiration
+                png_url = minio_client.presigned_get_object(
+                    BUCKET_NAME,
+                    png_object_name,
+                    expires=timedelta(days=7)
+                )
                 
-                fingerprint_data[finger_name] = {
+                wsq_url = minio_client.presigned_get_object(
+                    BUCKET_NAME,
+                    wsq_object_name,
+                    expires=timedelta(days=7)
+                )
+                
+                biometric_data["fingerprints"][finger_name] = {
                     "png_url": png_url,
                     "wsq_url": wsq_url,
                     "formats": ["png", "wsq"]
@@ -308,10 +344,12 @@ async def upload_fingerprint(
         metadata = {
             "id": id,
             "capture_date": capture_date,
-            "fingerprints": fingerprint_data,
+            "face": biometric_data["face"],
+            "fingerprints": biometric_data["fingerprints"],
             "last_updated": datetime.utcnow().isoformat()
         }
         
+        # Save metadata
         metadata_json = json.dumps(metadata)
         metadata_stream = io.BytesIO(metadata_json.encode())
         
@@ -329,11 +367,9 @@ async def upload_fingerprint(
         raise HTTPException(status_code=500, detail=f"MinIO error: {e}")
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
-    
-FORWARDED_MINIO_URL = "113.11.21.65:8096"
 
-@app.get("/fingerprints/")
-async def get_fingerprints():
+@app.get("/biometrics/")
+async def get_biometrics():
     try:
         records = []
         objects = list(minio_client.list_objects(BUCKET_NAME, recursive=True))
@@ -347,14 +383,31 @@ async def get_fingerprints():
                     data = minio_client.get_object(BUCKET_NAME, obj.object_name)
                     metadata = json.loads(data.read().decode('utf-8'))
                     
-                    # Generate fresh URLs for each fingerprint using URL manager
+                    # Generate fresh URLs for face images
+                    for face_name in metadata['face'].keys():
+                        object_name = f"{record_id}/face/{face_name}.png"
+                        url = minio_client.presigned_get_object(
+                            BUCKET_NAME,
+                            object_name,
+                            expires=timedelta(days=7)
+                        )
+                        metadata['face'][face_name] = url
+                    
+                    # Generate fresh URLs for fingerprints
                     for finger_name, finger_data in metadata['fingerprints'].items():
-                        png_object_name = f"{record_id}/{finger_name}.png"
-                        wsq_object_name = f"{record_id}/{finger_name}.wsq"
+                        png_object_name = f"{record_id}/fingerprints/{finger_name}.png"
+                        wsq_object_name = f"{record_id}/fingerprints/{finger_name}.wsq"
                         
-                        # Use URL manager to get presigned URLs
-                        png_url = url_manager.get_presigned_url(png_object_name)
-                        wsq_url = url_manager.get_presigned_url(wsq_object_name)
+                        png_url = minio_client.presigned_get_object(
+                            BUCKET_NAME,
+                            png_object_name,
+                            expires=timedelta(days=7)
+                        )
+                        wsq_url = minio_client.presigned_get_object(
+                            BUCKET_NAME,
+                            wsq_object_name,
+                            expires=timedelta(days=7)
+                        )
                         
                         finger_data['png_url'] = png_url
                         finger_data['wsq_url'] = wsq_url
