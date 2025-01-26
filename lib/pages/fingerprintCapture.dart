@@ -1,36 +1,34 @@
-import 'package:evisa_temp/fingerprint/extraction.dart';
+// import 'package:evisa/pages/extraction.dart';
+import 'package:evisa_temp/pages/extraction.dart';
 import 'package:flutter/material.dart';
 
-// import 'capturingThumb.dart';
+class FingerprintCapture extends StatelessWidget {
+  final String userId;
 
-class fingerprintCapture extends StatelessWidget {
-  const fingerprintCapture({super.key});
+  const FingerprintCapture({
+    super.key,
+    required this.userId,
+  });
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.white,
-      appBar: AppBar(
-        title: Padding(
-          padding: const EdgeInsets.only(top: 20),
-          child: const Text(
-            'Fingerprint Image Capture',
-            style: TextStyle(
-              color: Colors.black,
-              fontWeight: FontWeight.bold,
-              fontSize: 25,
-            ),
-          ),
-        ),
-        backgroundColor: Colors.white,
-        elevation: 0,
-        centerTitle: true,
-      ),
-      body: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16.0),
+      body: SingleChildScrollView( // Add SingleChildScrollView here
+        child: Padding(
+          padding: const EdgeInsets.all(16.0),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.center,
             children: [
+              const SizedBox(height: 40),
+              const Text(
+                "Fingerprint Image Capture",
+                style: TextStyle(
+                  fontSize: 24,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.black,
+                ),
+              ),
               const SizedBox(height: 16),
               const Text(
                 "Using your phone's back camera, show your finger tips so we can take photos of your fingerprints.",
@@ -43,16 +41,15 @@ class fingerprintCapture extends StatelessWidget {
               ),
               const SizedBox(height: 20),
               Center(
-
-                  child: ClipRRect(
-                    borderRadius: BorderRadius.circular(8),
-                    child: Image(
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(8),
+                  child: const Image(
                     image: AssetImage(
-                    'assets/finger.png',
-                  ),
+                      'assets/finger.png',
                     ),
                   ),
                 ),
+              ),
               const SizedBox(height: 35),
               Container(
                 padding: const EdgeInsets.all(12),
@@ -63,28 +60,23 @@ class fingerprintCapture extends StatelessWidget {
                 child: const Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text("1. Hold your left hand steady with the palm facing up. You might find it easier to place your arm or hand against a surface.",
-                  style: TextStyle(fontSize: 16, height: 1.8),
+                    Text(
+                      "1. Hold your left hand steady with the palm facing up.",
+                      style: TextStyle(fontSize: 16, height: 1.8),
                     ),
                     Text(
-                      "2. Hold the camera over the tip of your thumb until the photo has been taken.",
+                      "2. Hold the camera steady and capture left hand image.",
                       style: TextStyle(fontSize: 16, height: 1.8),
                     ),
                     SizedBox(height: 8),
                     Text(
-                      "3. Next hold the camera over your 4 fingertips until the photo has been taken.",
-                      style: TextStyle(fontSize: 16, height: 1.8),
-                    ),
-                    SizedBox(height: 8),
-                    Text(
-                      "4. Repeat steps 1-3 with your right hand holding your phone in your left hand.",
+                      "3. Repeat steps 1-3 with your right hand holding your phone in your left hand.",
                       style: TextStyle(fontSize: 16, height: 1.8),
                     ),
                   ],
                 ),
               ),
-              const SizedBox(height: 24),
-
+              const SizedBox(height: 40),
               // Start Button
               SizedBox(
                 width: double.infinity,
@@ -94,7 +86,8 @@ class fingerprintCapture extends StatelessWidget {
                     // Navigate to CapturingThumb page
                     Navigator.push(
                       context,
-                      MaterialPageRoute(builder: (context) => const FingerprintProcessor()),
+                      MaterialPageRoute(
+                          builder: (context) => FingerprintProcessor(userId: userId)),
                     );
                   },
                   style: ElevatedButton.styleFrom(
@@ -113,12 +106,10 @@ class fingerprintCapture extends StatelessWidget {
                   ),
                 ),
               ),
-
-
             ],
           ),
+        ),
       ),
     );
   }
 }
-

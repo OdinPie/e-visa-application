@@ -1,3 +1,4 @@
+import 'package:evisa_temp/pages/foreignAffairsUI.dart';
 import 'package:flutter/material.dart';
 
 class done extends StatelessWidget {
@@ -69,17 +70,27 @@ class done extends StatelessWidget {
                         borderRadius: BorderRadius.circular(8),
                       ),
                     ),
-                    child: const Text(
-                      'Done',
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontSize: 20,
-                        fontWeight: FontWeight.bold,
+                    child: GestureDetector(
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(builder: (context) => foreignAffairsUI()),
+                        );
+                      },
+                      child: const Text(
+                        'Done',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 20,
+                          fontWeight: FontWeight.bold,
+                        ),
                       ),
                     ),
+
+                  ),
                   ),
                 ),
-              ),
+
 
 
             ],

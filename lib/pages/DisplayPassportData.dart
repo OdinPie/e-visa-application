@@ -1,5 +1,5 @@
+import 'package:evisa_temp/pages/Facelivelinesschecks.dart';
 import 'package:flutter/material.dart';
-import 'package:evisa_temp/FaceLivelinessCheck.dart';
 import 'dart:io';
 import 'package:http/http.dart' as http;
 
@@ -52,15 +52,34 @@ Future<bool> _sendToApi(File? file, BuildContext context) async {
       );
       return true;
   } else {
-    throw Exception("Could Not Save Passport Photo");
+    // throw Exception("Could Not Save Passport Photo");
+    showDialog(
+        context: context,
+        builder: (BuildContext context) {
+          return AlertDialog(
+            title: Text("No Face Detected"),
+            content: Text(
+                "Sorry, Passport Photo could not be detected. Please try again."),
+            actions: [
+              TextButton(
+                onPressed: () {
+                  Navigator.of(context).pop(); // Close the dialog
+                  // Implement retry scan logic here
+                },
+                child: Text("Retry Scan"),
+              ),
+            ],
+          );
+        },
+      );
+      return false;
   }
 }
 
 class _DisplayPassportDataState extends State<DisplayPassportData> {
   void checkExpiry(BuildContext context) {
     DateTime expiryDate = widget.expiryDate;
-    if (DateTime.now().add(const Duration(days: 180)).compareTo(expiryDate) ==
-        1) {
+    if (DateTime.now().add(const Duration(days: 180)).compareTo(expiryDate) == 1) {
       showDialog(
         context: context,
         builder: (BuildContext context) {
