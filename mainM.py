@@ -695,35 +695,41 @@ async def upload_biometrics(
         # Process face images
         face_fields = {
             f'face_{i}': locals()[f'face_{i}'] 
-            for i in range(6)  # Assuming 6 face images
+            for i in range(6)
             if locals()[f'face_{i}'] is not None
         }
 
         for face_name, base64_data in face_fields.items():
-            if base64_data:
-                if ',' in base64_data:
+            try:
+                # Clean the base64 string
+                if base64_data and ',' in base64_data:
                     base64_data = base64_data.split(',')[1]
-
-                image_data = base64.b64decode(base64_data)
-                img = Image.open(io.BytesIO(image_data))
                 
-                # Save as PNG
-                buffer = io.BytesIO()
-                img.save(buffer, format='PNG', optimize=False, quality=100)
-                buffer.seek(0)
-                img_data = buffer.getvalue()
+                # Decode base64 to bytes
+                image_bytes = base64.b64decode(base64_data)
                 
+                # Convert to PIL Image
+                img = Image.open(io.BytesIO(image_bytes))
+                
+                # Convert to PNG format
+                png_buffer = io.BytesIO()
+                img.save(png_buffer, format='PNG')
+                png_buffer.seek(0)
+                png_data = png_buffer.getvalue()
+                
+                # Define object name for MinIO
                 object_name = f"{id}/face/{face_name}.png"
                 
+                # Upload to MinIO
                 minio_client.put_object(
                     BUCKET_NAME,
                     object_name,
-                    io.BytesIO(img_data),
-                    length=len(img_data),
+                    io.BytesIO(png_data),
+                    length=len(png_data),
                     content_type='image/png'
                 )
                 
-                # Generate URL with 7-day expiration
+                # Generate URL
                 url = minio_client.presigned_get_object(
                     BUCKET_NAME,
                     object_name,
@@ -731,8 +737,12 @@ async def upload_biometrics(
                 )
                 
                 biometric_data["face"][face_name] = url
+                
+            except Exception as e:
+                print(f"Error processing {face_name}: {str(e)}")
+                continue
 
-        # Process fingerprint images
+        # Process fingerprint images (existing code remains the same)
         fingerprint_fields = {
             'right_thumb': right_thumb,
             'right_index': right_index,
@@ -753,10 +763,10 @@ async def upload_biometrics(
 
                 image_data = base64.b64decode(base64_data)
                 img = Image.open(io.BytesIO(image_data))
-               
+                
                 # Save as PNG
                 png_buffer = io.BytesIO()
-                img.save(png_buffer, format='PNG', optimize=False, quality=100)
+                img.save(png_buffer, format='PNG')
                 png_buffer.seek(0)
                 png_data = png_buffer.getvalue()
                 
@@ -766,6 +776,7 @@ async def upload_biometrics(
                 wsq_buffer.seek(0)
                 wsq_data = wsq_buffer.getvalue()
                 
+                # Define object names
                 png_object_name = f"{id}/fingerprints/{finger_name}.png"
                 wsq_object_name = f"{id}/fingerprints/{finger_name}.wsq"
                 
@@ -787,7 +798,7 @@ async def upload_biometrics(
                     content_type='application/octet-stream'
                 )
                 
-                # Generate URLs with 7-day expiration
+                # Generate URLs
                 png_url = minio_client.presigned_get_object(
                     BUCKET_NAME,
                     png_object_name,
@@ -806,6 +817,7 @@ async def upload_biometrics(
                     "formats": ["png", "wsq"]
                 }
 
+        # Create metadata
         metadata = {
             "id": id,
             "capture_date": capture_date,
@@ -829,8 +841,10 @@ async def upload_biometrics(
         return metadata
 
     except S3Error as e:
-        raise HTTPException(status_code=500, detail=f"MinIO error: {e}")
+        print(f"MinIO error: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"MinIO error: {str(e)}")
     except Exception as e:
+        print(f"General error: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
 
 @app.get("/biometrics/")
