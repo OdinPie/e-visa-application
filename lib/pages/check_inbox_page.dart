@@ -7,8 +7,6 @@ import 'package:http/http.dart' as http;
 import 'package:lottie/lottie.dart';
 
 import 'VisaDetails.dart';
-// import 'package:url_launcher/url_launcher.dart';
-// import 'package:url_launcher/url_launcher_string.dart';
 
 class CheckInbox extends StatefulWidget {
   final String email;
@@ -46,6 +44,22 @@ class _CheckInboxState extends State<CheckInbox> {
     super.dispose();
   }
 
+  Future<String> storeEmail(String email) async {
+    final response =
+        await http.post(Uri.parse('http://127.0.0.1:8000/store_email/'),
+            headers: <String, String>{
+              'Content-Type': 'application/json; charset=UTF-8',
+            },
+            body: jsonEncode(<String, String>{'email': email}));
+
+    if (response.statusCode == 200 || response.statusCode == 201) {
+      print(response.body);
+      return response.body;
+    } else {
+      throw Exception(response.statusCode);
+    }
+  }
+
   Future<void> validateOTP(String givenOtp, String email) async {
     const String apiurl = "http://127.0.0.1:8000/get-otp/";
     final Uri uri = Uri.parse('$apiurl?email=$email');
@@ -56,10 +70,12 @@ class _CheckInboxState extends State<CheckInbox> {
         final data = jsonDecode(response.body);
         final otp = data['otp'];
         if (otp == givenOtp) {
+          Future<String> userId = storeEmail(email);
           Navigator.push(
             context,
             MaterialPageRoute(
-              builder: (context) => VisaApplicationDetailsPage(),
+              // builder: (context) => VisaApplicationDetailsPage(),
+              builder: (context) => VisaApplicationDetailsPage(userId:userId),
             ),
           );
         } else {

@@ -4,6 +4,7 @@ import 'dart:io';
 import 'package:http/http.dart' as http;
 
 class DisplayPassportData extends StatefulWidget {
+  final Future<String> userId;
   final String countryCode;
   final String surName;
   final String givenName;
@@ -17,6 +18,7 @@ class DisplayPassportData extends StatefulWidget {
 
   const DisplayPassportData({
     Key? key,
+    required this.userId,
     required this.countryCode,
     required this.surName,
     required this.givenName,
@@ -34,7 +36,7 @@ class DisplayPassportData extends StatefulWidget {
     return _DisplayPassportDataState();
   }
 }
-
+class _DisplayPassportDataState extends State<DisplayPassportData> {
 Future<bool> _sendToApi(File? file, BuildContext context) async {
   final uri = Uri.parse("http://127.0.0.1:8000/upload_passport/");
   final request = http.MultipartRequest("POST", uri)
@@ -45,41 +47,41 @@ Future<bool> _sendToApi(File? file, BuildContext context) async {
   if (response.statusCode == 200) {
     // return true;
     Navigator.push(
-        context,
-        MaterialPageRoute(
-          builder: (context) => Facelivelinesscheck(),
-        ),
-      );
-      return true;
+      context,
+      MaterialPageRoute(
+        builder: (context) => Facelivelinesscheck(userId: widget.userId),
+      ),
+    );
+    return true;
   } else {
     // throw Exception("Could Not Save Passport Photo");
     showDialog(
-        context: context,
-        builder: (BuildContext context) {
-          return AlertDialog(
-            title: Text("No Face Detected"),
-            content: Text(
-                "Sorry, Passport Photo could not be detected. Please try again."),
-            actions: [
-              TextButton(
-                onPressed: () {
-                  Navigator.of(context).pop(); // Close the dialog
-                  // Implement retry scan logic here
-                },
-                child: Text("Retry Scan"),
-              ),
-            ],
-          );
-        },
-      );
-      return false;
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: Text("No Face Detected"),
+          content: Text(
+              "Sorry, Passport Photo could not be detected. Please try again."),
+          actions: [
+            TextButton(
+              onPressed: () {
+                Navigator.of(context).pop(); // Close the dialog
+                // Implement retry scan logic here
+              },
+              child: Text("Retry Scan"),
+            ),
+          ],
+        );
+      },
+    );
+    return false;
   }
 }
 
-class _DisplayPassportDataState extends State<DisplayPassportData> {
   void checkExpiry(BuildContext context) {
     DateTime expiryDate = widget.expiryDate;
-    if (DateTime.now().add(const Duration(days: 180)).compareTo(expiryDate) == 1) {
+    if (DateTime.now().add(const Duration(days: 180)).compareTo(expiryDate) ==
+        1) {
       showDialog(
         context: context,
         builder: (BuildContext context) {
@@ -107,8 +109,7 @@ class _DisplayPassportDataState extends State<DisplayPassportData> {
       );
       // return false;
     } else {
-      _sendToApi(widget.image,context);
-      
+      _sendToApi(widget.image, context);
     }
   }
 

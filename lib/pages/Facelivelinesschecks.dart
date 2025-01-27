@@ -11,6 +11,8 @@ import 'package:path_provider/path_provider.dart';
 import 'fingerprintCapture.dart';
 
 class Facelivelinesscheck extends StatefulWidget {
+  final Future<String> userId;
+  const Facelivelinesscheck({Key? key, required this.userId}) : super(key: key);
   @override
   _FacelivelinesscheckState createState() => _FacelivelinesscheckState();
 }
@@ -193,24 +195,28 @@ class _FacelivelinesscheckState extends State<Facelivelinesscheck> {
                               );
                             },
                           );
-
-                          final String userId = DateTime.now().millisecondsSinceEpoch.toString();
-                          final url = Uri.parse('http://127.0.0.1:8000/upload/');
+                          final String userIdString =
+                              (widget.userId).toString();
+                          final url =
+                              Uri.parse('http://127.0.0.1:8000/upload/');
                           var request = http.MultipartRequest('POST', url);
 
                           // Add metadata
-                          request.fields['id'] = userId;
-                          request.fields['capture_date'] = DateTime.now().toIso8601String();
+                          request.fields['id'] = userIdString;
+                          request.fields['capture_date'] =
+                              DateTime.now().toIso8601String();
 
                           // Add face images
                           for (int i = 0; i < _clickedImages.length; i++) {
-                            List<int> imageBytes = await _clickedImages[i].readAsBytes();
+                            List<int> imageBytes =
+                                await _clickedImages[i].readAsBytes();
                             String base64Image = base64Encode(imageBytes);
                             request.fields['face_$i'] = base64Image;
                           }
 
                           final response = await request.send();
-                          final responseBody = await response.stream.bytesToString();
+                          final responseBody =
+                              await response.stream.bytesToString();
 
                           // Hide loading indicator
                           if (context.mounted) {
@@ -223,12 +229,14 @@ class _FacelivelinesscheckState extends State<Facelivelinesscheck> {
                               Navigator.pushReplacement(
                                 context,
                                 MaterialPageRoute(
-                                  builder: (context) => FingerprintCapture(userId: userId),
+                                  builder: (context) =>
+                                      FingerprintCapture(userId: userIdString),
                                 ),
                               );
                             }
                           } else {
-                            throw Exception('Upload failed: ${response.statusCode}\n$responseBody');
+                            throw Exception(
+                                'Upload failed: ${response.statusCode}\n$responseBody');
                           }
                         } catch (e) {
                           // Handle errors
@@ -277,8 +285,7 @@ class _FacelivelinesscheckState extends State<Facelivelinesscheck> {
       final body = await response.stream.bytesToString();
       final json = jsonDecode(body);
       return json['result'] == true;
-    }
-    else {
+    } else {
       throw Exception("Face did not match to the passport");
     }
   }
@@ -297,50 +304,50 @@ class _FacelivelinesscheckState extends State<Facelivelinesscheck> {
       ),
       body: _isCameraInitialized
           ? Stack(
-        children: [
-          Positioned.fill(
-            child: CameraPreview(_cameraController),
-          ),
-          Positioned.fill(
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Container(
-                  padding: const EdgeInsets.all(16.0),
-                  color: Colors.black54,
-                  child: Text(
-                    "Follow the instructions on screen",
-                    style: TextStyle(
-                      fontSize: 20,
-                      color: Colors.white,
-                      fontWeight: FontWeight.bold,
-                    ),
-                    textAlign: TextAlign.center,
-                  ),
+                Positioned.fill(
+                  child: CameraPreview(_cameraController),
                 ),
-                Container(
-                  padding: const EdgeInsets.all(16.0),
-                  color: Colors.black54,
-                  child: Text(
-                    _statusMessage,
-                    style: TextStyle(
-                      fontSize: 18,
-                      color: _isVerified ? Colors.green : Colors.white,
-                      fontWeight: FontWeight.bold,
-                    ),
-                    textAlign: TextAlign.center,
+                Positioned.fill(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(16.0),
+                        color: Colors.black54,
+                        child: Text(
+                          "Follow the instructions on screen",
+                          style: TextStyle(
+                            fontSize: 20,
+                            color: Colors.white,
+                            fontWeight: FontWeight.bold,
+                          ),
+                          textAlign: TextAlign.center,
+                        ),
+                      ),
+                      Container(
+                        padding: const EdgeInsets.all(16.0),
+                        color: Colors.black54,
+                        child: Text(
+                          _statusMessage,
+                          style: TextStyle(
+                            fontSize: 18,
+                            color: _isVerified ? Colors.green : Colors.white,
+                            fontWeight: FontWeight.bold,
+                          ),
+                          textAlign: TextAlign.center,
+                        ),
+                      ),
+                    ],
                   ),
                 ),
               ],
-            ),
-          ),
-        ],
-      )
+            )
           : Center(
-        child: CircularProgressIndicator(
-          color: Colors.blueAccent,
-        ),
-      ),
+              child: CircularProgressIndicator(
+                color: Colors.blueAccent,
+              ),
+            ),
     );
   }
 

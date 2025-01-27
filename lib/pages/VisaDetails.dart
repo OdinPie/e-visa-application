@@ -1,11 +1,10 @@
-
 import 'package:evisa_temp/pages/PassportPage.dart';
 import 'package:flutter/material.dart';
 
-
-
-
 class VisaApplicationDetailsPage extends StatefulWidget {
+  final Future <String> userId;
+  const VisaApplicationDetailsPage({Key? key, required this.userId}) : super(key: key);
+
   @override
   _VisaApplicationDetailsPageState createState() =>
       _VisaApplicationDetailsPageState();
@@ -109,46 +108,49 @@ class _VisaApplicationDetailsPageState
                 onTap: isLoading
                     ? null
                     : () async {
-                  if (selectedVisaType != null && selectedEmbassy != null) {
-                    setState(() {
-                      isLoading = true;
-                    });
-                    await Future.delayed(Duration(seconds: 1));
-                    setState(() {
-                      isLoading = false;
-                    });
-                    Navigator.push(
-                      context,
-                      PageRouteBuilder(
-                        pageBuilder: (context, animation, secondaryAnimation) =>
-                            PassportPage(),
-                        transitionsBuilder:
-                            (context, animation, secondaryAnimation, child) {
-                          const begin = Offset(0, 1); // From bottom to top
-                          const end = Offset.zero;
-                          const curve = Curves.easeInOut;
+                        if (selectedVisaType != null &&
+                            selectedEmbassy != null) {
+                          setState(() {
+                            isLoading = true;
+                          });
+                          await Future.delayed(Duration(seconds: 1));
+                          setState(() {
+                            isLoading = false;
+                          });
+                          Navigator.push(
+                            context,
+                            PageRouteBuilder(
+                              pageBuilder:
+                                  (context, animation, secondaryAnimation) =>
+                                      PassportPage(userId: widget.userId),
+                              transitionsBuilder: (context, animation,
+                                  secondaryAnimation, child) {
+                                const begin =
+                                    Offset(0, 1); // From bottom to top
+                                const end = Offset.zero;
+                                const curve = Curves.easeInOut;
 
-                          var tween = Tween(begin: begin, end: end)
-                              .chain(CurveTween(curve: curve));
-                          var offsetAnimation = animation.drive(tween);
+                                var tween = Tween(begin: begin, end: end)
+                                    .chain(CurveTween(curve: curve));
+                                var offsetAnimation = animation.drive(tween);
 
-                          return SlideTransition(
-                            position: offsetAnimation,
-                            child: child,
+                                return SlideTransition(
+                                  position: offsetAnimation,
+                                  child: child,
+                                );
+                              },
+                            ),
                           );
-                        },
-                      ),
-                    );
-                  } else {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                        content: Text(
-                          'Please select visa type and embassy.',
-                        ),
-                      ),
-                    );
-                  }
-                },
+                        } else {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: Text(
+                                'Please select visa type and embassy.',
+                              ),
+                            ),
+                          );
+                        }
+                      },
                 child: Container(
                   height: 50,
                   decoration: BoxDecoration(
@@ -158,21 +160,20 @@ class _VisaApplicationDetailsPageState
                   alignment: Alignment.center,
                   child: isLoading
                       ? SizedBox(
-                    width: 20,
-                    height: 20,
-                    child: CircularProgressIndicator(
-                      color: Colors.white,
-                      strokeWidth: 2,
-                    ),
-                  )
+                          width: 20,
+                          height: 20,
+                          child: CircularProgressIndicator(
+                            color: Colors.white,
+                            strokeWidth: 2,
+                          ),
+                        )
                       : Text(
-                    'Continue',
-                    style: TextStyle(
-                      color: Colors.white,
-
-                      fontSize: 16,
-                    ),
-                  ),
+                          'Continue',
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontSize: 16,
+                          ),
+                        ),
                 ),
               ),
             ),

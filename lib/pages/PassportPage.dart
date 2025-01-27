@@ -9,13 +9,16 @@ import 'package:google_ml_kit/google_ml_kit.dart';
 import 'package:image_picker/image_picker.dart';
 
 class PassportPage extends StatefulWidget {
+  final Future<String> userId;
+  const PassportPage({Key? key, required this.userId}) : super(key: key);
   @override
   State<PassportPage> createState() {
     return _PassportPageState();
   }
 }
 
-class _PassportPageState extends State<PassportPage> with SingleTickerProviderStateMixin{
+class _PassportPageState extends State<PassportPage>
+    with SingleTickerProviderStateMixin {
   late AnimationController _controller;
   late Animation<double> _scaleAnimation;
   late Animation<double> _fadeAnimation;
@@ -65,7 +68,7 @@ class _PassportPageState extends State<PassportPage> with SingleTickerProviderSt
           await ImagePicker().pickImage(source: ImageSource.camera);
       if (pickedFile != null) {
         image = File(pickedFile.path);
-        
+
         await sendImageToApi(image!);
         setState(() {
           loading = true;
@@ -74,10 +77,10 @@ class _PassportPageState extends State<PassportPage> with SingleTickerProviderSt
       }
     } catch (e) {
       setState(() {
-          output = "Could not capture";
-          loading = false;
-          // processImage(image);
-        });
+        output = "Could not capture";
+        loading = false;
+        // processImage(image);
+      });
       print(e);
     }
   }
@@ -103,36 +106,37 @@ class _PassportPageState extends State<PassportPage> with SingleTickerProviderSt
       if (response.statusCode == 200) {
         final responseData = await response.stream.bytesToString();
         final result = jsonDecode(responseData);
-        processImage(result[0],result[1], image);
+        processImage(result[0], result[1], image);
         print("API Response: $result");
       } else {
         final responseData = await response.stream.bytesToString();
-      final result = jsonDecode(responseData);
-      setState(() {
-          output = "Could not process. Please try again\n";
-          loading = false;
-        });
-      print("Error from API: ${result['detail']}");
-      }
-    } catch (e) {
-      
+        final result = jsonDecode(responseData);
         setState(() {
           output = "Could not process. Please try again\n";
           loading = false;
         });
+        print("Error from API: ${result['detail']}");
+      }
+    } catch (e) {
+      setState(() {
+        output = "Could not process. Please try again\n";
+        loading = false;
+      });
       print("Error sending image to API: $e");
-
     }
   }
 
   // Process the captured image
-  processImage(String firstline,String secondline, File? image) async {
+  processImage(String firstline, String secondline, File? image) async {
     try {
-      
       if (firstline.isNotEmpty && secondline.isNotEmpty) {
         // String firstLine = result.current_line;
         String countryCode = firstline.substring(2, 5);
-        String surName = firstline.split('<<')[0].substring(5).replaceAll('<', ' ').toUpperCase();
+        String surName = firstline
+            .split('<<')[0]
+            .substring(5)
+            .replaceAll('<', ' ')
+            .toUpperCase();
         String givenName =
             firstline.split('<<')[1].replaceAll('<', ' ').toUpperCase();
         // String secLine = block.lines[1].text.replaceAll(" ", "");
@@ -165,6 +169,7 @@ class _PassportPageState extends State<PassportPage> with SingleTickerProviderSt
           context,
           MaterialPageRoute(
             builder: (context) => DisplayPassportData(
+                userId: widget.userId,
                 countryCode: countryCode,
                 surName: surName,
                 givenName: givenName,
@@ -248,40 +253,43 @@ class _PassportPageState extends State<PassportPage> with SingleTickerProviderSt
                 ),
                 SizedBox(height: 50),
                 Container(
-              padding: const EdgeInsets.all(16.0),
-              decoration: BoxDecoration(
-                color: Colors.grey.shade200,
-                borderRadius: BorderRadius.circular(8.0),
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    'FOR THE BEST RESULT',
-                    style: TextStyle(
-                      fontWeight: FontWeight.bold,
-                    ),
+                  padding: const EdgeInsets.all(16.0),
+                  decoration: BoxDecoration(
+                    color: Colors.grey.shade200,
+                    borderRadius: BorderRadius.circular(8.0),
                   ),
-                  SizedBox(height: 10),
-                  Text(
-                    '• Hold the document straight and steady.',
-                    style: TextStyle(
-                    fontSize: 16,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'FOR THE BEST RESULT',
+                        style: TextStyle(
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      SizedBox(height: 10),
+                      Text(
+                        '• Hold the document straight and steady.',
+                        style: TextStyle(
+                          fontSize: 16,
+                        ),
+                      ),
+                      Text(
+                        '• Take in a well-lit place without direct light or shadows on your face.',
+                        style: TextStyle(
+                          fontSize: 16,
+                        ),
+                      ),
+                      Text(
+                        '• Ensure there is no glare or shadows on the passport.',
+                        style: TextStyle(
+                          fontSize: 16,
+                        ),
+                      ),
+                    ],
                   ),
-                 ),
-                  Text(
-                      '• Take in a well-lit place without direct light or shadows on your face.',
-                    style: TextStyle(
-                    fontSize: 16,
-                  ),),
-                  Text('• Ensure there is no glare or shadows on the passport.',
-                    style: TextStyle(
-                      fontSize: 16,
-                    ),),
-                ],
-              ),
-            ),
-            SizedBox(height: 50),
+                ),
+                SizedBox(height: 50),
 
                 // Display the extracted text
                 output.isNotEmpty
