@@ -53,7 +53,6 @@ class _CheckInboxState extends State<CheckInbox> {
             body: jsonEncode(<String, String>{'email': email}));
 
     if (response.statusCode == 200 || response.statusCode == 201) {
-      print(response.body);
       return response.body;
     } else {
       throw Exception(response.statusCode);
@@ -70,12 +69,13 @@ class _CheckInboxState extends State<CheckInbox> {
         final data = jsonDecode(response.body);
         final otp = data['otp'];
         if (otp == givenOtp) {
-          Future<String> userId = storeEmail(email);
+          String userId = await storeEmail(email);
+          String userIdString = userId.toString();
           Navigator.push(
             context,
             MaterialPageRoute(
               // builder: (context) => VisaApplicationDetailsPage(),
-              builder: (context) => VisaApplicationDetailsPage(userId:userId),
+              builder: (context) => VisaApplicationDetailsPage(userId: userIdString),
             ),
           );
         } else {

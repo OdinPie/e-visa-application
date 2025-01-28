@@ -1,10 +1,12 @@
+import 'dart:convert';
+
 import 'package:evisa_temp/pages/Facelivelinesschecks.dart';
 import 'package:flutter/material.dart';
 import 'dart:io';
 import 'package:http/http.dart' as http;
 
 class DisplayPassportData extends StatefulWidget {
-  final Future<String> userId;
+  final String userId;
   final String countryCode;
   final String surName;
   final String givenName;
@@ -36,47 +38,80 @@ class DisplayPassportData extends StatefulWidget {
     return _DisplayPassportDataState();
   }
 }
+
 class _DisplayPassportDataState extends State<DisplayPassportData> {
-Future<bool> _sendToApi(File? file, BuildContext context) async {
-  final uri = Uri.parse("http://127.0.0.1:8000/upload_passport/");
-  final request = http.MultipartRequest("POST", uri)
-    ..files.add(await http.MultipartFile.fromPath('file', file!.path));
-
-  final response = await request.send();
-
-  if (response.statusCode == 200) {
-    // return true;
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (context) => Facelivelinesscheck(userId: widget.userId),
-      ),
-    );
-    return true;
-  } else {
-    // throw Exception("Could Not Save Passport Photo");
-    showDialog(
-      context: context,
-      builder: (BuildContext context) {
-        return AlertDialog(
-          title: Text("No Face Detected"),
-          content: Text(
-              "Sorry, Passport Photo could not be detected. Please try again."),
-          actions: [
-            TextButton(
-              onPressed: () {
-                Navigator.of(context).pop(); // Close the dialog
-                // Implement retry scan logic here
-              },
-              child: Text("Retry Scan"),
-            ),
-          ],
-        );
-      },
-    );
+  Future<bool> storePassportDetails(
+      String countryCode,
+      String surName,
+      String givenName,
+      String passportNumber,
+      String birthDate,
+      String gender,
+      String expiryDate,
+      String personalNumber) async {
+    String id = await widget.userId.toString();
+    Map<String, String> setter = {
+      'countryCode': countryCode,
+      'surName': surName,
+      'givenName': givenName,
+      'passportNumber': passportNumber,
+      'birthDate': birthDate,
+      'gender': gender,
+      'expiryDateString': expiryDate,
+      'personalNumber': personalNumber
+    };
+    final response = await http.post(
+        Uri.parse('http://127.0.0.1:8000/store_passport_details/?userId=$id'),
+        headers: <String, String>{
+          'Content-Type': 'application/json; charset=UTF-8',
+        },
+        body: jsonEncode(setter));
+    if (response.statusCode == 200 || response.statusCode == 201) {
+      return true;
+    }
     return false;
   }
-}
+
+  Future<bool> _uploadPassport(File? file, BuildContext context) async {
+    final uri = Uri.parse("http://127.0.0.1:8000/upload_passport/");
+    final request = http.MultipartRequest("POST", uri)
+      ..files.add(await http.MultipartFile.fromPath('file', file!.path));
+
+    final response = await request.send();
+
+    if (response.statusCode == 200) {
+      // return true;
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (context) => Facelivelinesscheck(userId: widget.userId),
+        ),
+      );
+      return true;
+    } else {
+      // throw Exception("Could Not Save Passport Photo");
+      showDialog(
+        context: context,
+        builder: (BuildContext context) {
+          return AlertDialog(
+            title: Text("No Face Detected"),
+            content: Text(
+                "Sorry, Passport Photo could not be detected. Please try again."),
+            actions: [
+              TextButton(
+                onPressed: () {
+                  Navigator.of(context).pop(); // Close the dialog
+                  // Implement retry scan logic here
+                },
+                child: Text("Retry Scan"),
+              ),
+            ],
+          );
+        },
+      );
+      return false;
+    }
+  }
 
   void checkExpiry(BuildContext context) {
     DateTime expiryDate = widget.expiryDate;
@@ -109,7 +144,16 @@ Future<bool> _sendToApi(File? file, BuildContext context) async {
       );
       // return false;
     } else {
-      _sendToApi(widget.image, context);
+      storePassportDetails(
+          widget.countryCode,
+          widget.surName,
+          widget.givenName,
+          widget.passportNumber,
+          widget.birthDate,
+          widget.gender,
+          widget.expiryDateString,
+          widget.personalNumber);
+      _uploadPassport(widget.image, context);
     }
   }
 
@@ -135,10 +179,12 @@ Future<bool> _sendToApi(File? file, BuildContext context) async {
                   const SizedBox(height: 20),
                   _buildTextField('Passport Number', widget.passportNumber),
                   _buildTextField('Nationality', widget.countryCode),
+                  _buildTextField('Personal Number', widget.personalNumber),
                   _buildTextField('Date of Birth', widget.birthDate),
                   _buildTextField('Surname', widget.surName),
                   _buildTextField('First Name', widget.givenName),
                   _buildTextField('Expiry Date', widget.expiryDateString),
+                  _buildTextField('Birth Date', widget.birthDate),
                   _buildTextField('Gender', widget.gender),
                   const SizedBox(height: 30),
                   Row(

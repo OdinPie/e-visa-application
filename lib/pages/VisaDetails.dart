@@ -1,9 +1,13 @@
+import 'dart:convert';
+
 import 'package:evisa_temp/pages/PassportPage.dart';
 import 'package:flutter/material.dart';
+import 'package:http/http.dart' as http;
 
 class VisaApplicationDetailsPage extends StatefulWidget {
-  final Future <String> userId;
-  const VisaApplicationDetailsPage({Key? key, required this.userId}) : super(key: key);
+  final String userId;
+  const VisaApplicationDetailsPage({Key? key, required this.userId})
+      : super(key: key);
 
   @override
   _VisaApplicationDetailsPageState createState() =>
@@ -22,6 +26,21 @@ class _VisaApplicationDetailsPageState
     'Australia Embassy',
   ];
   bool isLoading = false;
+
+  Future<bool> storeVisaDetails(String? type, String? embassy) async {
+    String id = await widget.userId.toString();
+    print(id);
+    final response = await http.post(
+        Uri.parse('http://127.0.0.1:8000/store_visa_details/?userId=$id'),
+        headers: <String, String>{
+          'Content-Type': 'application/json; charset=UTF-8',
+        },
+        body: jsonEncode(<String?, String?>{'type': type, 'embassy': embassy}));
+    if (response.statusCode == 200 || response.statusCode == 201) {
+      return true;
+    }
+    return false;
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -114,33 +133,38 @@ class _VisaApplicationDetailsPageState
                             isLoading = true;
                           });
                           await Future.delayed(Duration(seconds: 1));
-                          setState(() {
-                            isLoading = false;
-                          });
-                          Navigator.push(
-                            context,
-                            PageRouteBuilder(
-                              pageBuilder:
-                                  (context, animation, secondaryAnimation) =>
-                                      PassportPage(userId: widget.userId),
-                              transitionsBuilder: (context, animation,
-                                  secondaryAnimation, child) {
-                                const begin =
-                                    Offset(0, 1); // From bottom to top
-                                const end = Offset.zero;
-                                const curve = Curves.easeInOut;
+                          // send the visa details to mongodb
+                          bool response = await storeVisaDetails(
+                              selectedVisaType, selectedEmbassy);
+                          if (response == true) {
+                            setState(() {
+                              isLoading = false;
+                            });
+                            Navigator.push(
+                              context,
+                              PageRouteBuilder(
+                                pageBuilder:
+                                    (context, animation, secondaryAnimation) =>
+                                        PassportPage(userId: widget.userId),
+                                transitionsBuilder: (context, animation,
+                                    secondaryAnimation, child) {
+                                  const begin =
+                                      Offset(0, 1); // From bottom to top
+                                  const end = Offset.zero;
+                                  const curve = Curves.easeInOut;
 
-                                var tween = Tween(begin: begin, end: end)
-                                    .chain(CurveTween(curve: curve));
-                                var offsetAnimation = animation.drive(tween);
+                                  var tween = Tween(begin: begin, end: end)
+                                      .chain(CurveTween(curve: curve));
+                                  var offsetAnimation = animation.drive(tween);
 
-                                return SlideTransition(
-                                  position: offsetAnimation,
-                                  child: child,
-                                );
-                              },
-                            ),
-                          );
+                                  return SlideTransition(
+                                    position: offsetAnimation,
+                                    child: child,
+                                  );
+                                },
+                              ),
+                            );
+                          }
                         } else {
                           ScaffoldMessenger.of(context).showSnackBar(
                             SnackBar(

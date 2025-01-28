@@ -11,7 +11,7 @@ import 'package:path_provider/path_provider.dart';
 import 'fingerprintCapture.dart';
 
 class Facelivelinesscheck extends StatefulWidget {
-  final Future<String> userId;
+  final String userId;
   const Facelivelinesscheck({Key? key, required this.userId}) : super(key: key);
   @override
   _FacelivelinesscheckState createState() => _FacelivelinesscheckState();
@@ -195,14 +195,13 @@ class _FacelivelinesscheckState extends State<Facelivelinesscheck> {
                               );
                             },
                           );
-                          final String userIdString =
-                              (widget.userId).toString();
+                          
                           final url =
                               Uri.parse('http://127.0.0.1:8000/upload/');
                           var request = http.MultipartRequest('POST', url);
 
                           // Add metadata
-                          request.fields['id'] = userIdString;
+                          request.fields['id'] = widget.userId;
                           request.fields['capture_date'] =
                               DateTime.now().toIso8601String();
 
@@ -230,7 +229,7 @@ class _FacelivelinesscheckState extends State<Facelivelinesscheck> {
                                 context,
                                 MaterialPageRoute(
                                   builder: (context) =>
-                                      FingerprintCapture(userId: userIdString),
+                                      FingerprintCapture(userId: widget.userId),
                                 ),
                               );
                             }

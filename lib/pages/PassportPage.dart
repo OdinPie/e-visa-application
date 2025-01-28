@@ -9,7 +9,7 @@ import 'package:google_ml_kit/google_ml_kit.dart';
 import 'package:image_picker/image_picker.dart';
 
 class PassportPage extends StatefulWidget {
-  final Future<String> userId;
+  final String userId;
   const PassportPage({Key? key, required this.userId}) : super(key: key);
   @override
   State<PassportPage> createState() {
