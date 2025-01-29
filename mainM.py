@@ -32,6 +32,7 @@ import smtplib
 from dotenv import load_dotenv
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
+import logging
 # uvicorn detectionAPI:app --host 0.0.0.0 --port 8000
 # adb reverse tcp:8000 tcp:8000
 load_dotenv()
@@ -646,18 +647,29 @@ async def process_fingerprints(file: UploadFile = File(...)):
 
     except Exception as e:
         return JSONResponse(content={"status": "error", "message": str(e)})
+
+# Configure logging
+logging.basicConfig(
+    level=logging.DEBUG,  # Set logging level to DEBUG
+    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
+    handlers=[
+        logging.StreamHandler(),  # Print logs to the console
+        logging.FileHandler("minio_client.log")  # Optionally, save logs to a file
+    ]
+)
     
-    # MinIO setup
+# MinIO setup
 MINIO_URL = "113.11.21.65:8096"
 MINIO_ACCESS_KEY = "minioadmin"
 MINIO_SECRET_KEY = "MINIOadmin"
-BUCKET_NAME = "biometrics"  # Changed bucket name to be more generic
+BUCKET_NAME = "biometrics"
 
 minio_client = Minio(
     MINIO_URL,
     access_key=MINIO_ACCESS_KEY,
     secret_key=MINIO_SECRET_KEY,
-    secure=False
+    secure=False,
+    logger=logging.getLogger("minio")  # Enable logging for MinIO client
 )
 
 if not minio_client.bucket_exists(BUCKET_NAME):
